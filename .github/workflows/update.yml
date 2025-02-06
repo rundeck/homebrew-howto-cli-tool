@@ -1,0 +1,71 @@
+name: update version from upstream
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'SHA'
+        required: true
+        type: string
+      version:
+        description: 'Version'
+        required: true
+        type: string
+  repository_dispatch:
+  # push:
+  #   branches:
+  #     - automation
+
+permissions:
+  contents: write
+
+jobs:
+  update_version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: get upstream version
+        id: upstream
+        run: |
+        
+          sha="${{inputs.sha}}"
+          version="${{inputs.version}}"
+          
+          if [ -z "$sha" ] || [ -z "$version" ] ; then
+            echo "One ore more Inputs were not present: sha=$sha, version=$version"
+            exit 2
+          fi
+
+          echo "✅ Found version $version: sha $sha" | tee -a $GITHUB_STEP_SUMMARY
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "sha=$sha" >> $GITHUB_OUTPUT
+
+      - name: update formula
+        id: update
+        run: |
+          formula="Formula/howto.rb"
+          sed -i'' -E 's#^VERSION = ".*"$#VERSION = "${{ inputs.version }}"#' $formula
+          sed -i'' -E 's#^SHA = ".*"$#SHA = "${{ inputs.sha }}"#' $formula
+
+          if [[ -z "$(git status -s $formula)" ]]; then
+            echo "✅ Already up-to-date" | tee -a $GITHUB_STEP_SUMMARY
+            echo "changed=" >> $GITHUB_OUTPUT
+          else
+            echo "🟠 Updated $formula" | tee -a $GITHUB_STEP_SUMMARY
+            git add $formula
+            cat $formula
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: commit changes
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          git config --global user.name 'Github Workflow'
+          git config --global user.email 'workflow@bot.github.com'
+          git commit -am "chore: update brew to ${{ steps.upstream.outputs.version }}"
+          git push
+
+          echo "✅ Changes committed" | tee -a $GITHUB_STEP_SUMMARY
