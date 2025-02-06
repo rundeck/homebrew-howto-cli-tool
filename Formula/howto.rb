@@ -1,8 +1,8 @@
 
 require 'formula'
 
-VERSION = "0.1.23"
-SHA = "0911a1a47a5869c7b33c18dc8b8badb4d7e14d9394928a0e37003ad99249b42c"
+VERSION = "0.1.24"
+SHA = "eed869ed7812ddd07dcd80ad348edae2bd622704615e2a9dc4e7ff5881191af5"
 
 class Howto < Formula
   homepage "https://github.com/rundeck/howto-cli-tool"
